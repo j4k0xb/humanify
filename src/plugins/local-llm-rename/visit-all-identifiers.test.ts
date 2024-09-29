@@ -207,3 +207,35 @@ e.b;
     })
   );
 });
+
+test("choose alternative names for globals", async () => {
+  const code = `const a = 1;`;
+  const expected = `const _crypto = 1;`;
+  assert.equal(
+    expected,
+    await visitAllIdentifiers(code, async () => "crypto", undefined, ["crypto"])
+  );
+});
+
+test("retry on an invalid name", async () => {
+  const code = `const a = 1;`;
+  const expected = `const foo = 1;`;
+  let i = 0;
+  assert.equal(
+    expected,
+    await visitAllIdentifiers(code, async () => ["this.foo", "foo"][i++])
+  );
+});
+
+test("maximum retry attempts on an invalid name", async () => {
+  const code = `const a = 1;`;
+  const expected = `const thisBaz = 1;`;
+  let i = 0;
+  assert.equal(
+    expected,
+    await visitAllIdentifiers(
+      code,
+      async () => ["this.foo", "this.bar", "this.baz", "foo"][i++]
+    )
+  );
+});

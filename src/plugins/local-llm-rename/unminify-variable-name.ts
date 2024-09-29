@@ -6,7 +6,8 @@ export async function unminifyVariableName(
   prompt: Prompt,
   variableName: string,
   filename: string,
-  code: string
+  code: string,
+  invalidNames: string[]
 ) {
   verbose.log("Unminifying variable name:", variableName);
   verbose.log("Surrounding code:", code);
@@ -19,9 +20,14 @@ export async function unminifyVariableName(
 
   verbose.log("Description:", description);
 
+  const invalidNamesDescription =
+    invalidNames.length > 0
+      ? `The following names are invalid, choose better ones: ${invalidNames.join(", ")}.`
+      : "";
+
   const result = await prompt(
     `You are a Code Assistant.`,
-    `What would be a good name for the following function or a variable in Typescript? Don't mind the minified variable names.\n${description}`,
+    `What would be a good name for the following function or a variable in Typescript? Don't mind the minified variable names.${invalidNamesDescription}\n${description}`,
     gbnf`A good name would be '${/[a-zA-Z] [a-zA-Z0-9]{2,12}/}'`
   );
 

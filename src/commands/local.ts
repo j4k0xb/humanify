@@ -4,8 +4,9 @@ import { DEFAULT_MODEL } from "../local-models.js";
 import { unminify } from "../unminify.js";
 import prettier from "../plugins/prettier.js";
 import babel from "../plugins/babel/babel.js";
-import { localReanme } from "../plugins/local-llm-rename/local-llm-rename.js";
+import { localRename } from "../plugins/local-llm-rename/local-llm-rename.js";
 import { verbose } from "../verbose.js";
+import globals from "globals";
 
 export const local = cli()
   .name("local")
@@ -25,6 +26,11 @@ export const local = cli()
       verbose.enabled = true;
     }
 
+    const reservedNames = [
+      ...Object.keys(globals.node),
+      ...Object.keys(globals.browser)
+    ];
+
     verbose.log("Starting local inference with options: ", opts);
 
     const prompt = await llama({
@@ -34,7 +40,7 @@ export const local = cli()
     });
     await unminify(filename, opts.outputDir, [
       babel,
-      localReanme(prompt),
+      localRename(prompt, reservedNames),
       prettier
     ]);
   });

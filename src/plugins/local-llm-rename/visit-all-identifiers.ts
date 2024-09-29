@@ -1,6 +1,12 @@
 import { parseAsync, transformFromAstAsync, NodePath } from "@babel/core";
 import * as babelTraverse from "@babel/traverse";
-import { Identifier, isValidIdentifier, Node } from "@babel/types";
+import {
+  Identifier,
+  isValidIdentifier,
+  Node,
+  toIdentifier
+} from "@babel/types";
+import { verbose } from "../../verbose.js";
 
 const traverse: typeof babelTraverse.default.default = (
   typeof babelTraverse.default === "function"
@@ -10,13 +16,19 @@ const traverse: typeof babelTraverse.default.default = (
 
 const CONTEXT_WINDOW_SIZE = 200;
 
-type Visitor = (name: string, scope: string) => Promise<string>;
+type Visitor = (
+  name: string,
+  scope: string,
+  invalidNames: string[]
+) => Promise<string>;
 
 export async function visitAllIdentifiers(
   code: string,
   visitor: Visitor,
-  onProgress?: (percentageDone: number) => void
+  onProgress?: (percentageDone: number) => void,
+  reservedNames?: string[]
 ) {
+  const uniquereservedNames = new Set(reservedNames);
   const ast = await parseAsync(code);
   const visited = new Set<string>();
   const renames = new Set<string>();
@@ -39,10 +51,23 @@ export async function visitAllIdentifiers(
     }
 
     const surroundingCode = await scopeToString(smallestScope);
-    const renamed = await visitor(smallestScopeNode.name, surroundingCode);
 
-    let safeRenamed = isValidIdentifier(renamed) ? renamed : `_${renamed}`;
-    while (renames.has(safeRenamed)) {
+    let renamed = "";
+    let safeRenamed = "";
+    const invalidNames: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      renamed = await visitor(
+        smallestScopeNode.name,
+        surroundingCode,
+        invalidNames
+      );
+      if (isValidIdentifier(renamed)) break;
+      invalidNames.push(renamed);
+      verbose.log(`Invalid identifier: ${renamed}, trying again (${i + 1}/3)`);
+    }
+
+    safeRenamed = toIdentifier(renamed);
+    while (renames.has(safeRenamed) || uniquereservedNames.has(safeRenamed)) {
       safeRenamed = `_${safeRenamed}`;
     }
     renames.add(safeRenamed);
