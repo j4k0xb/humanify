@@ -208,7 +208,16 @@ e.b;
   );
 });
 
-test("choose alternative names for globals", async () => {
+test("choose an alternative name for keywords", async () => {
+  const code = `const a = 1;`;
+  const expected = "const _var = 1;";
+  assert.equal(
+    expected,
+    await visitAllIdentifiers(code, async () => "var")
+  );
+});
+
+test("choose an alternative name for globals", async () => {
   const code = `const a = 1;`;
   const expected = `const _crypto = 1;`;
   assert.equal(
